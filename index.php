@@ -1,51 +1,55 @@
 <?php
-require_once(__DIR__ . '/../../config.php');
-require_once($CFG->libdir.'/formslib.php');
-require_once(__DIR__.'/form.php');
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-$PAGE->set_url(new moodle_url('/local/practice/index.php'));
-$PAGE->set_context(context_system::instance());
-$PAGE->set_title('Practice Form');
-$PAGE->set_heading('Practice Form');
+/**
+ * local practice's index page
+ *
+ * @package    local_practice
+ * @copyright  2022 onwards WIDE Services  {@link https://www.wideservices.gr}
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+use local_practice\output\main;
+require(__DIR__ . '/../../config.php');
+require_once(__DIR__ . '/classes/practice_form.php');
 
-require_login();
 
-$mform = new practice_form();
+$url = new moodle_url('/local/practice/index.php');
+$PAGE->set_url($url);
+$context = context_system::instance();
+$PAGE->set_context($context);
 
-if ($mform->is_cancelled()) {
-    redirect(new moodle_url('/local/practice/index.php'));
-} else if ($data = $mform->get_data()) {
-    global $DB;
-    $record = new stdClass();
-    $record->firstname = $data->firstname;
-    $record->lastname = $data->lastname;
-    $record->email = $data->email;
-    $record->timecreated = time();
-    $record->timemodified = time();
-    $DB->insert_record('practice', $record);
-    redirect(new moodle_url('/local/practice/index.php'), 'Record added!', 2);
+$PAGE->set_title(get_string('practicetitle','local_practice'));
+$PAGE->set_heading(get_string('practicetitle', 'local_practice'));
+
+$mform = new practice_form(null);
+if($fromform=$mform->get_data()){
+    $insertrecord=new stdClass();
+    $insertrecord->firstname=$fromform->firstname;
+    $insertrecord->lastname=$fromform->firstname;
+    $insertrecord->email=$fromform->email;
+    $insertrecord->timecreated=time()-86400;
+    $DB->insert_record('local_practice',$insertrecord);
+    redirect(new moodle_url('/local/practice/lndex.php'));
+}else{
+    $indexview=new main();
+    echo $OUTPUT->header();
+    echo $OUTPUT->render($indexview);
+    $mform->display();
+    echo $OUTPUT->footer();
 }
 
-echo $OUTPUT->header();
-$mform->display();
 
-echo html_writer::start_tag('table', array('class' => 'generaltable'));
-echo html_writer::start_tag('tr');
-echo html_writer::tag('th', 'First Name');
-echo html_writer::tag('th', 'Last Name');
-echo html_writer::tag('th', 'Email');
-echo html_writer::tag('th', 'Time Created');
-echo html_writer::end_tag('tr');
 
-$records = $DB->get_records('practice');
-foreach ($records as $record) {
-    echo html_writer::start_tag('tr');
-    echo html_writer::tag('td', $record->firstname);
-    echo html_writer::tag('td', $record->lastname);
-    echo html_writer::tag('td', $record->email);
-    echo html_writer::tag('td', userdate($record->timecreated));
-    echo html_writer::end_tag('tr');
-}
-echo html_writer::end_tag('table');
-
-echo $OUTPUT->footer();
